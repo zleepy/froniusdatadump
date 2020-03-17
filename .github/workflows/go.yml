@@ -53,17 +53,17 @@ jobs:
             dep ensure
         fi
 
-    - name: Build
+    - name: Build  ${{ matrix.go-version }}
       run: go build -v .
 
     - name: Create package (windows)
-      if: startsWith(${{ matrix.platform }}, ${{ 'windows' }})
+      if: startsWith(matrix.platform, 'windows')
       run: |
         xcopy fdd.exe pkg/
         xcopy config.json pkg/
         
     - name: Create package (ubuntu)
-      if: startsWith(${{ matrix.platform }}, ${{ 'ubuntu' }})
+      if: startsWith(matrix.platform }}, 'ubuntu')
       run: |
         mkdir -p pkg && cp fdd config.json ./pkg
 
