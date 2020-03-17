@@ -1,15 +1,22 @@
 # froniusdatadump
 FDD is a simple service that reads from a Fronius web API and delivers the data to an InfluxDB.
 
-Tjenare,
-Det här programmet går att köra fristående eller som en windows service.Det där med Windows service har jag inte testat än så det garanterar jag inte att det fungerar.
-Men du kan väl testa det i alla fall genom att köra det från kommandoprompten eller som schemalagt jobb på servern. Kontrollera sökvägarna i config.json först. Den filen måste ligga i den katalog som är aktiv när programmet köras. Det är oftast samma som exe-filen ligger i om man inte specifikt ändrar det.
-Det loggar i stort sett alla värden som hittas per site och per inverter för GetPowerFlowRealtimeData, samt per instans den hittar under Data för GetMeterRealtimeData.
+## Instructions
 
+This application can be run standalone from Linux or Windows command line. It should also be able to run as a service, but that functionality is not tested yet.
 
+If not possible to install as a service you could schedule i to run using `cron` on linux and `Scheduler` on Windows. 
+
+Before starting, verify settings in `config.json`. That file must lie in the active working directory, that is usualy in the same directory as the binary unless explicitly changed.
+
+## What is logged
+Most values for GetPowerFlowRealtimeData, per site and inverter.
+Most values for GetMeterRealtimeData, per instance found under Data.
 
 
 ## InfluxDB things
+How you could see logged values.
+
 ``` bahsrc
 $ influx -precision rfc3339
 > show databases
@@ -22,36 +29,18 @@ Using database mydb
 
 > insert cpu,host=RPi value=0.64
 
-> select "host","value" from "cpu"
-name: cpu
----------
-time                            host    value
+> select * from "fronius"
 
-2020-03-03T21:00:17.517428683Z  RPi     0.64
 ```
 
-# Fronius phase
-http://192.168.2.69/solar_api/v1/GetMeterRealtimeData.cgi?Scope=System
+# My own notes 
+## Fronius phase
+http://froniusdevice/solar_api/v1/GetMeterRealtimeData.cgi?Scope=System
 
-# Fronius power
-http://192.168.2.69/solar_api/v1/GetPowerFlowRealtimeData.fcgi
+## Fronius power
+http://froniusdevice/solar_api/v1/GetPowerFlowRealtimeData.fcgi
 
-
-
-
-# Avinstallerat gamla versionen av GO
-
-## Användarvariabler
-PATH -`C:\Users\Maria\Documents\Anders\Projekt\go\bin`
-GOOS -`linux`
-GOPATH -+`%USERPROFILE%\Documents\Anders\Projekt\go`
-
-## Systemvariabler
-GOROOT -`C:\Go\`
-GOPATH -`C:\Users\Maria\Documents\Anders\Projekt\go`
-
-
-# WLS installation av senaste versionen av GO
+## WLS installation av senaste versionen av GO
 Install Binary Distribution
 Let’s say we wanted to get the latest version, we would have to install the official binary distribution.
 
