@@ -51,8 +51,7 @@ jobs:
     - name: Create package (windows)
       if: startsWith(matrix.platform, 'windows')
       run: |
-        xcopy fdd.exe pkg/
-        xcopy config.json pkg/
+        xcopy fdd.exe pkg\ && xcopy config.json pkg\
         
     - name: Create package (ubuntu)
       if: startsWith(matrix.platform, 'ubuntu')
