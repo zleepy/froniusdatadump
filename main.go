@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"flag"
 	"log"
 	"os"
 	"time"
@@ -17,23 +17,33 @@ var logger service.Logger
 type program struct {
 	config configurations
 	ctx    context.Context
-	stop   context.CancelFunc
+	exit   context.CancelFunc
 }
 
 func (p *program) Start(s service.Service) error {
 	ctx, stop := context.WithCancel(context.Background())
 	p.ctx = ctx
-	p.stop = stop
-	go p.run()
+	p.exit = stop
+	go p.run(s)
 	return nil
 }
 
-func (p *program) run() {
+func (p *program) run(s service.Service) {
+	logger.Info("Starting")
+	defer func() {
+		if service.Interactive() {
+			p.Stop(s)
+		} else {
+			s.Stop()
+		}
+	}()
+
 	influxClient, err := p.startInfluxClient()
 	if err != nil {
 		// If we got an error here, there is probably something with the connection to the InfluxDB.
 		// TODO: Retry later.
-		panic(logger.Error(err))
+		logger.Error(err)
+		return
 	}
 	froniusClient := NewFronius(p.config.Source.APIUri)
 
@@ -53,17 +63,26 @@ func (p *program) run() {
 }
 
 func (p *program) Stop(s service.Service) error {
+	p.exit()
+	logger.Info("Stopping")
+	if service.Interactive() {
+		os.Exit(0)
+	}
 	return nil
 }
 
 func main() {
-	fmt.Println("Get information from Fronius solar api and insert it into an InfluxDb.")
-	fmt.Println()
-
+	options := make(service.KeyValue)
+	options["Restart"] = "on-success"
+	options["SuccessExitStatus"] = "1 2 8 SIGKILL"
 	svcConfig := &service.Config{
 		Name:        "FroniusDataDump",
 		DisplayName: "Fronius Data Dump",
-		Description: "Hämtar ut data från en Fronius-produkt och lagrar i InfluxDb.",
+		Description: "Read data from a Fronius product and store it in InfluxDb.",
+		Dependencies: []string{
+			"Requires=network.target",
+			"After=network-online.target syslog.target"},
+		Option: options,
 	}
 
 	prg := &program{}
@@ -78,24 +97,39 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if prg.readConfig() {
+	showHelp, svcFlag := prg.readConfig()
+	if showHelp {
 		path, err := os.Getwd()
 		if err != nil {
 			log.Println(err)
 		}
-		fmt.Printf("Could not read config file in current working directory '%s'.\n", path)
-		fmt.Printf("Please creata a file named '%s' there, looking like this:\n", configFileName)
-		fmt.Println("{")
-		fmt.Println("	\"Source\": {")
-		fmt.Println("		\"APIUri\": \"http://localhost/solar_api/v1/\",")
-		fmt.Println("		\"SleepInSeconds\": 10")
-		fmt.Println("	},")
-		fmt.Println("	\"Sink\": {")
-		fmt.Println("		\"APIUri\": \"http://192.168.2.80:8086/\",")
-		fmt.Println("		\"Database\": \"mydb\"")
-		fmt.Println("	},")
-		fmt.Println("	\"VerboseLogging\": false")
-		fmt.Println("}")
+		log.Println("Get information from Fronius solar api and insert it into an InfluxDb.")
+		log.Println()
+		log.Printf("Could not read config file in current working directory '%s'.\n", path)
+		log.Printf("Please creata a file named '%s' there, looking like this:\n", configFileName)
+		log.Println("{")
+		log.Println("	\"Source\": {")
+		log.Println("		\"APIUri\": \"http://localhost/solar_api/v1/\",")
+		log.Println("		\"SleepInSeconds\": 10")
+		log.Println("	},")
+		log.Println("	\"Sink\": {")
+		log.Println("		\"APIUri\": \"http://192.168.2.80:8086/\",")
+		log.Println("		\"Database\": \"mydb\"")
+		log.Println("	},")
+		log.Println("	\"VerboseLogging\": false")
+		log.Println("}")
+		log.Println()
+		log.Printf("Valid actions: %q\n", service.ControlAction)
+		log.Println()
+		return
+	}
+
+	if len(*svcFlag) != 0 {
+		err := service.Control(s, *svcFlag)
+		if err != nil {
+			log.Printf("Valid actions: %q\n", service.ControlAction)
+			log.Fatal(err)
+		}
 		return
 	}
 
@@ -106,7 +140,7 @@ func main() {
 }
 
 // readConfig setup and read configurations from file or commandline arguments.
-func (p *program) readConfig() (showHelp bool) {
+func (p *program) readConfig() (showHelp bool, svcFlag *string) {
 	// Default values
 	p.config = configurations{
 		Source: source{
@@ -119,6 +153,10 @@ func (p *program) readConfig() (showHelp bool) {
 		},
 		VerboseLogging: false,
 	}
+
+	svcFlag = flag.String("service", "", "Control the system service.")
+	flag.Parse()
+
 	err := readConfigFile(&p.config)
 	if err != nil {
 		showHelp = true

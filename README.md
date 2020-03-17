@@ -5,11 +5,28 @@ FDD is a simple service that reads from a Fronius web API and delivers the data 
 
 ## Instructions
 
-This application can be run standalone from Linux or Windows command line. It should also be able to run as a service, but that functionality is not tested yet.
+This application can be run standalone from Linux or Windows command line.
 
 If not possible to install as a service you could schedule i to run using `cron` on linux and `Scheduler` on Windows. 
 
 Before starting, verify settings in `config.json`. That file must lie in the active working directory, that is usualy in the same directory as the binary unless explicitly changed.
+
+## Run as a service
+Commands avaliable to control service:
+- start
+- stop
+- restart
+- install
+- uninstall
+
+Must be run as an administrator.
+
+Example:
+```
+fdd.exe -service install
+...
+fdd.exe -service uninstall
+```
 
 ## What is logged
 Most values for GetPowerFlowRealtimeData, per site and inverter.
