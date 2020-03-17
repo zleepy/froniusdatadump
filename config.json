@@ -1,0 +1,11 @@
+{
+    "Source": {
+        "APIUri": "http://localhost/solar_api/v1/",
+        "SleepInSeconds": 10
+    },
+    "Sink": {
+        "APIUri": "http://192.168.2.80:8086/",
+        "Database": "mydb"
+    },
+    "VerboseLogging" : false
+}
