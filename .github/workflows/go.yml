@@ -63,7 +63,7 @@ jobs:
         xcopy config.json pkg/
         
     - name: Create package (ubuntu)
-      if: startsWith(matrix.platform }}, 'ubuntu')
+      if: startsWith(matrix.platform, 'ubuntu')
       run: |
         mkdir -p pkg && cp fdd config.json ./pkg
 
